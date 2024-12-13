@@ -12,16 +12,15 @@ body {
 
 #video-container {
   width: 100%;
-  max-width: 800px;
+  max-width: 1800px;
   margin: 20px auto;
-}
-
-#video {
-  width: 100%;
-  background: #000;
+  transition: margin 0.3s ease;
 }
 
 #controls {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
@@ -30,6 +29,11 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+#video {
+  width: 100%;
+  background: #000;
 }
 
 button {
@@ -86,10 +90,6 @@ label {
 </style>
 </head>
 <body>
-<div id="video-container">
-  <video id="video" controls></video>
-</div>
-
 <div id="controls">
   <label for="file-input">Choose Video</label>
   <input type="file" id="file-input" accept="video/*">
@@ -97,6 +97,10 @@ label {
   <button id="rewind">Rewind 10s</button>
   <button id="forward">Forward 10s</button>
   <span id="time-display">0:00 / 0:00</span>
+</div>
+
+<div id="video-container">
+  <video id="video" controls></video>
 </div>
 
 <script>
@@ -107,6 +111,7 @@ const playPauseButton = document.getElementById('play-pause');
 const rewindButton = document.getElementById('rewind');
 const forwardButton = document.getElementById('forward');
 const timeDisplay = document.getElementById('time-display');
+const videoContainer = document.getElementById('video-container');
 
 // Audio injection functionality
 let intervalId = null;
@@ -114,6 +119,16 @@ let audio = null;
 let countdownInterval = null;
 let audioQueue = [];
 let currentQueueIndex = 0;
+
+function centerVideo() {
+    const windowHeight = window.innerHeight;
+    const videoHeight = video.offsetHeight;
+    const scrollPosition = (videoHeight - windowHeight) / 2;
+    window.scrollTo({
+        top: videoContainer.offsetTop - (windowHeight - videoHeight) / 2,
+        behavior: 'smooth'
+    });
+}
 
 function showNotification(message, isCountdown = false) {
     let notification = document.getElementById('loop-notification');
@@ -145,31 +160,6 @@ function showCurrentlyPlaying(filename) {
     overlay.textContent = `Now Playing: ${filename}`;
 }
 
-function pauseVideo() {
-    video.pause();
-    showNotification('Video Paused');
-}
-
-function playVideo() {
-    video.play();
-    showNotification('Video Resumed');
-}
-
-function startCountdown(timer) {
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-    }
-
-    let remainingTime = timer;
-    countdownInterval = setInterval(() => {
-        showNotification(`Time until next audio: ${remainingTime} seconds`, true);
-        remainingTime--;
-        if (remainingTime < 0) {
-            clearInterval(countdownInterval);
-        }
-    }, 1000);
-}
-
 // Base video player event listeners
 fileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
@@ -178,6 +168,7 @@ fileInput.addEventListener('change', (event) => {
         video.src = fileURL;
         video.play();
         playPauseButton.textContent = 'Pause';
+        centerVideo();
     }
 });
 
@@ -185,6 +176,7 @@ playPauseButton.addEventListener('click', () => {
     if (video.paused) {
         video.play();
         playPauseButton.textContent = 'Pause';
+        centerVideo();
     } else {
         video.pause();
         playPauseButton.textContent = 'Play';

@@ -64,20 +64,9 @@ label {
   color: #fff;
 }
 
+/* Hidden history display */
 #history-display {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(0,0,0,0.8);
-  padding: 10px;
-  border-radius: 5px;
-  max-width: 300px;
-}
-
-.history-item {
-  color: #fff;
-  margin: 5px 0;
-  font-size: 0.9em;
+  display: none;
 }
 </style>
 </head>
@@ -104,7 +93,6 @@ const playPauseButton = document.getElementById('play-pause');
 const rewindButton = document.getElementById('rewind');
 const forwardButton = document.getElementById('forward');
 const timeDisplay = document.getElementById('time-display');
-const historyDisplay = document.getElementById('history-display');
 
 // Initialize video history in localStorage if it doesn't exist
 if (!localStorage.getItem('videoHistory')) {
@@ -128,20 +116,6 @@ function updateVideoHistory(filename, currentTime) {
     history = history.slice(0, 5);
     
     localStorage.setItem('videoHistory', JSON.stringify(history));
-    displayHistory();
-}
-
-function displayHistory() {
-    const history = JSON.parse(localStorage.getItem('videoHistory'));
-    historyDisplay.innerHTML = '<h3>Recent Videos:</h3>';
-    history.forEach(item => {
-        const timeString = formatTime(item.timestamp);
-        historyDisplay.innerHTML += `
-            <div class="history-item">
-                ${item.filename} (Last at: ${timeString})
-            </div>
-        `;
-    });
 }
 
 fileInput.addEventListener('change', (event) => {
@@ -161,7 +135,6 @@ fileInput.addEventListener('change', (event) => {
         
         video.play();
         playPauseButton.textContent = 'Pause';
-        showCurrentlyPlaying(file.name);
     }
 });
 
@@ -183,6 +156,7 @@ playPauseButton.addEventListener('click', () => {
     if (video.paused) {
         video.play();
         playPauseButton.textContent = 'Pause';
+        scrollToVideo();
     } else {
         video.pause();
         playPauseButton.textContent = 'Play';
@@ -204,7 +178,9 @@ function formatTime(seconds) {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Initial history display
-displayHistory();
+function scrollToVideo() {
+    const videoContainer = document.getElementById('video-container');
+    videoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 </script>
 </body></html>

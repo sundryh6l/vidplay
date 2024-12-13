@@ -64,29 +64,20 @@ label {
   color: #fff;
 }
 
-#loop-notification {
+#history-display {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
   background: rgba(0,0,0,0.8);
-  color: white;
   padding: 10px;
   border-radius: 5px;
-  z-index: 9999;
+  max-width: 300px;
 }
 
-#currently-playing-overlay {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #E50914;
-  color: white;
-  padding: 15px;
-  border-radius: 5px;
-  font-weight: bold;
-  font-size: 18px;
-  z-index: 9999;
+.history-item {
+  color: #fff;
+  margin: 5px 0;
+  font-size: 0.9em;
 }
 </style>
 </head>
@@ -104,72 +95,87 @@ label {
   <video id="video" controls></video>
 </div>
 
+<div id="history-display"></div>
+
 <script>
-// Base video player functionality
 const video = document.getElementById('video');
 const fileInput = document.getElementById('file-input');
 const playPauseButton = document.getElementById('play-pause');
 const rewindButton = document.getElementById('rewind');
 const forwardButton = document.getElementById('forward');
 const timeDisplay = document.getElementById('time-display');
-const videoContainer = document.getElementById('video-container');
+const historyDisplay = document.getElementById('history-display');
 
-// Audio injection functionality
-let intervalId = null;
-let audio = null;
-let countdownInterval = null;
-let audioQueue = [];
-let currentQueueIndex = 0;
+// Initialize video history in localStorage if it doesn't exist
+if (!localStorage.getItem('videoHistory')) {
+    localStorage.setItem('videoHistory', JSON.stringify([]));
+}
 
-function centerVideo() {
-    const windowHeight = window.innerHeight;
-    const videoHeight = video.offsetHeight;
-    const scrollPosition = (videoHeight - windowHeight) / 2;
-    window.scrollTo({
-        top: videoContainer.offsetTop - (windowHeight - videoHeight) / 2,
-        behavior: 'smooth'
+function updateVideoHistory(filename, currentTime) {
+    let history = JSON.parse(localStorage.getItem('videoHistory'));
+    
+    // Remove the entry if it already exists
+    history = history.filter(item => item.filename !== filename);
+    
+    // Add new entry at the beginning
+    history.unshift({
+        filename: filename,
+        timestamp: currentTime,
+        date: new Date().toISOString()
+    });
+    
+    // Keep only last 5 entries
+    history = history.slice(0, 5);
+    
+    localStorage.setItem('videoHistory', JSON.stringify(history));
+    displayHistory();
+}
+
+function displayHistory() {
+    const history = JSON.parse(localStorage.getItem('videoHistory'));
+    historyDisplay.innerHTML = '<h3>Recent Videos:</h3>';
+    history.forEach(item => {
+        const timeString = formatTime(item.timestamp);
+        historyDisplay.innerHTML += `
+            <div class="history-item">
+                ${item.filename} (Last at: ${timeString})
+            </div>
+        `;
     });
 }
 
-function showNotification(message, isCountdown = false) {
-    let notification = document.getElementById('loop-notification');
-    
-    if (!notification) {
-        notification = document.createElement('div');
-        notification.id = 'loop-notification';
-        document.body.appendChild(notification);
-    }
-    
-    notification.textContent = message;
-    
-    if (!isCountdown) {
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
-}
-
-function showCurrentlyPlaying(filename) {
-    let overlay = document.getElementById('currently-playing-overlay');
-    
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'currently-playing-overlay';
-        document.body.appendChild(overlay);
-    }
-    
-    overlay.textContent = `Now Playing: ${filename}`;
-}
-
-// Base video player event listeners
 fileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
         const fileURL = URL.createObjectURL(file);
         video.src = fileURL;
+        
+        // Check if this video exists in history
+        const history = JSON.parse(localStorage.getItem('videoHistory'));
+        const previousEntry = history.find(item => item.filename === file.name);
+        
+        if (previousEntry) {
+            video.currentTime = previousEntry.timestamp;
+            alert(`Resuming from ${formatTime(previousEntry.timestamp)}`);
+        }
+        
         video.play();
         playPauseButton.textContent = 'Pause';
-        centerVideo();
+        showCurrentlyPlaying(file.name);
+    }
+});
+
+// Save timestamp every 5 seconds during playback
+video.addEventListener('timeupdate', () => {
+    const currentTime = formatTime(video.currentTime);
+    const duration = formatTime(video.duration);
+    timeDisplay.textContent = `${currentTime} / ${duration}`;
+    
+    if (Math.floor(video.currentTime) % 5 === 0) {
+        const currentFile = fileInput.files[0];
+        if (currentFile) {
+            updateVideoHistory(currentFile.name, video.currentTime);
+        }
     }
 });
 
@@ -177,7 +183,6 @@ playPauseButton.addEventListener('click', () => {
     if (video.paused) {
         video.play();
         playPauseButton.textContent = 'Pause';
-        centerVideo();
     } else {
         video.pause();
         playPauseButton.textContent = 'Play';
@@ -192,12 +197,6 @@ forwardButton.addEventListener('click', () => {
     video.currentTime = Math.min(video.duration, video.currentTime + 10);
 });
 
-video.addEventListener('timeupdate', () => {
-    const currentTime = formatTime(video.currentTime);
-    const duration = formatTime(video.duration);
-    timeDisplay.textContent = `${currentTime} / ${duration}`;
-});
-
 function formatTime(seconds) {
     if (isNaN(seconds)) return '0:00';
     const minutes = Math.floor(seconds / 60);
@@ -205,13 +204,7 @@ function formatTime(seconds) {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Message listener for extension commands
-window.addEventListener('message', (event) => {
-    if (event.data.action === 'start') {
-        processAudioQueue(event.data.config, event.data.useDelay);
-    } else if (event.data.action === 'stop') {
-        stopLoop();
-    }
-});
+// Initial history display
+displayHistory();
 </script>
 </body></html>

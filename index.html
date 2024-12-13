@@ -1,0 +1,224 @@
+<html><head><base href="." />
+<meta charset="UTF-8" />
+<title>Local Video Player Extension</title>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #141414;
+  color: #ffffff;
+}
+
+#video-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+#video {
+  width: 100%;
+  background: #000;
+}
+
+#controls {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 10px;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+button {
+  padding: 8px 15px;
+  background: #E50914;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #F40612;
+}
+
+label {
+  color: #fff;
+  cursor: pointer;
+}
+
+#file-input {
+  display: none;
+}
+
+#time-display {
+  margin-left: auto;
+  color: #fff;
+}
+
+#loop-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 9999;
+}
+
+#currently-playing-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #E50914;
+  color: white;
+  padding: 15px;
+  border-radius: 5px;
+  font-weight: bold;
+  font-size: 18px;
+  z-index: 9999;
+}
+</style>
+</head>
+<body>
+<div id="video-container">
+  <video id="video" controls></video>
+</div>
+
+<div id="controls">
+  <label for="file-input">Choose Video</label>
+  <input type="file" id="file-input" accept="video/*">
+  <button id="play-pause">Play</button>
+  <button id="rewind">Rewind 10s</button>
+  <button id="forward">Forward 10s</button>
+  <span id="time-display">0:00 / 0:00</span>
+</div>
+
+<script>
+// Base video player functionality
+const video = document.getElementById('video');
+const fileInput = document.getElementById('file-input');
+const playPauseButton = document.getElementById('play-pause');
+const rewindButton = document.getElementById('rewind');
+const forwardButton = document.getElementById('forward');
+const timeDisplay = document.getElementById('time-display');
+
+// Audio injection functionality
+let intervalId = null;
+let audio = null;
+let countdownInterval = null;
+let audioQueue = [];
+let currentQueueIndex = 0;
+
+function showNotification(message, isCountdown = false) {
+    let notification = document.getElementById('loop-notification');
+    
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'loop-notification';
+        document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    
+    if (!isCountdown) {
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+}
+
+function showCurrentlyPlaying(filename) {
+    let overlay = document.getElementById('currently-playing-overlay');
+    
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'currently-playing-overlay';
+        document.body.appendChild(overlay);
+    }
+    
+    overlay.textContent = `Now Playing: ${filename}`;
+}
+
+function pauseVideo() {
+    video.pause();
+    showNotification('Video Paused');
+}
+
+function playVideo() {
+    video.play();
+    showNotification('Video Resumed');
+}
+
+function startCountdown(timer) {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+
+    let remainingTime = timer;
+    countdownInterval = setInterval(() => {
+        showNotification(`Time until next audio: ${remainingTime} seconds`, true);
+        remainingTime--;
+        if (remainingTime < 0) {
+            clearInterval(countdownInterval);
+        }
+    }, 1000);
+}
+
+// Base video player event listeners
+fileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const fileURL = URL.createObjectURL(file);
+        video.src = fileURL;
+        video.play();
+        playPauseButton.textContent = 'Pause';
+    }
+});
+
+playPauseButton.addEventListener('click', () => {
+    if (video.paused) {
+        video.play();
+        playPauseButton.textContent = 'Pause';
+    } else {
+        video.pause();
+        playPauseButton.textContent = 'Play';
+    }
+});
+
+rewindButton.addEventListener('click', () => {
+    video.currentTime = Math.max(0, video.currentTime - 10);
+});
+
+forwardButton.addEventListener('click', () => {
+    video.currentTime = Math.min(video.duration, video.currentTime + 10);
+});
+
+video.addEventListener('timeupdate', () => {
+    const currentTime = formatTime(video.currentTime);
+    const duration = formatTime(video.duration);
+    timeDisplay.textContent = `${currentTime} / ${duration}`;
+});
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Message listener for extension commands
+window.addEventListener('message', (event) => {
+    if (event.data.action === 'start') {
+        processAudioQueue(event.data.config, event.data.useDelay);
+    } else if (event.data.action === 'stop') {
+        stopLoop();
+    }
+});
+</script>
+</body></html>

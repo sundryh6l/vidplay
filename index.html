@@ -162,23 +162,52 @@
             settings: ['captions', 'quality', 'speed'],
         });
 
+        let currentFileName = '';
+
+        // Save playback time to local storage
+        function savePlaybackTime() {
+            if (currentFileName) {
+                const currentTime = player.currentTime;
+                localStorage.setItem(currentFileName, currentTime);
+            }
+        }
+
+        // Load playback time from local storage
+        function loadPlaybackTime() {
+            if (currentFileName) {
+                const savedTime = localStorage.getItem(currentFileName);
+                if (savedTime) {
+                    player.currentTime = parseFloat(savedTime);
+                }
+            }
+        }
+
         // File input change handler
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                currentFileName = file.name;
                 const fileURL = URL.createObjectURL(file);
                 videoElement.src = fileURL;
 
                 videoElement.onloadedmetadata = function() {
+                    loadPlaybackTime(); // Load saved time
                     player.play(); // Auto-play when loaded
                 };
             }
         });
+
+        // Save playback time every 5 seconds
+        setInterval(savePlaybackTime, 5000);
+
+        // Save playback time when the user leaves or reloads the page
+        window.addEventListener('beforeunload', savePlaybackTime);
 
         // Scroll to center the video when playback starts
         videoElement.addEventListener('play', function() {
             playerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     </script>
+
 
 </body></html>

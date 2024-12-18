@@ -1,117 +1,132 @@
-<html><head><base href="." /><meta charset="UTF-8"><title>Video Player with Plyr and Audio Track Selection</title><link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css"><style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #1a1a1a;
-        color: #fff;
-        margin: 0;
-        padding: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player with Plyr and Audio Track Selection</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-    .player-container {
-        width: 1811px;
-        height: 834px;
-        background: #2a2a2a;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        position: relative;
-    }
+        .player-container {
+            width: 100%;
+            max-width: 1811px;
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
 
-    .file-input-container {
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
-    }
+        .file-input-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
 
-    #file-input {
-        display: none;
-    }
+        #file-input {
+            display: none;
+        }
 
-    .custom-file-input {
-        background: #4CAF50;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background 0.3s;
-        display: inline-block;
-    }
+        .custom-file-input {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: inline-block;
+        }
 
-    .custom-file-input:hover {
-        background: #45a049;
-    }
+        .custom-file-input:hover {
+            background: #45a049;
+        }
 
-    .video-wrapper {
-        width: 100%;
-        height: calc(100% - 60px); /* Accounting for the file input height */
-        margin-top: 60px;
-    }
+        .video-wrapper {
+            width: 100%;
+            height: auto;
+            max-height: 834px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin-top: 60px;
+        }
 
-    .plyr {
-        width: 100%;
-        height: 100%;
-        border-radius: 5px;
-    }
+        .plyr {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+        }
 
-    video {
-        width: 100%;
-        height: 100%;
-    }
+        video {
+            max-height: 834px;
+            max-width: 100%;
+        }
 
-    .audio-tracks {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-    }
+        .audio-tracks {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
 
-    .audio-tracks select {
-        background: #333;
-        color: white;
-        padding: 8px;
-        border: none;
-        border-radius: 4px;
-        width: 200px;
-        cursor: pointer;
-    }
+        .audio-tracks select {
+            background: #333;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            width: 200px;
+            cursor: pointer;
+        }
 
-    .audio-tracks select:focus {
-        outline: none;
-        box-shadow: 0 0 0 2px #4CAF50;
-    }
+        .audio-tracks select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #4CAF50;
+        }
 
-    .audio-info {
-        margin-top: 10px;
-        font-size: 14px;
-        color: #aaa;
-    }
+        .audio-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
 
-    #file-info {
-        position: absolute;
-        bottom: 60px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 14px;
-        color: #aaa;
-    }
+        #file-info {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: #aaa;
+        }
 
-    .unsupported {
-        position: absolute;
-        bottom: 90px;
-        left: 50%;
-        transform: translateX(-50%);
-        color: #ff4444;
-        display: none;
-    }
-</style></head><body>
+        .unsupported {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff4444;
+            display: none;
+        }
+    </style>
+</head>
+<body>
     <div class="player-container">
+
         <div class="file-input-container">
             <label for="file-input" class="custom-file-input">
                 Choose Video File
@@ -183,14 +198,26 @@
         }
 
         // File input change handler
-        fileInput.addEventListener('change', function(e) {
+        fileInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 currentFileName = file.name;
                 const fileURL = URL.createObjectURL(file);
                 videoElement.src = fileURL;
 
-                videoElement.onloadedmetadata = function() {
+                videoElement.onloadedmetadata = function () {
+                    const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+
+                    if (videoElement.videoHeight > 834) {
+                        // Adjust the width to maintain aspect ratio
+                        const newWidth = 834 * aspectRatio;
+                        videoElement.style.width = `${newWidth}px`;
+                        videoElement.style.height = '834px';
+                    } else {
+                        videoElement.style.width = '';
+                        videoElement.style.height = '';
+                    }
+
                     loadPlaybackTime(); // Load saved time
                     player.play(); // Auto-play when loaded
                 };
@@ -203,11 +230,15 @@
         // Save playback time when the user leaves or reloads the page
         window.addEventListener('beforeunload', savePlaybackTime);
 
-        // Scroll to center the video when playback starts
-        videoElement.addEventListener('play', function() {
+        // Reference to the file input container
+        const fileInputContainer = document.querySelector('.file-input-container');
+
+        // Scroll to center the video and hide the button when playback starts
+        videoElement.addEventListener('play', function () {
             playerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            fileInputContainer.style.display = 'none'; // Hide the file input button
         });
+
     </script>
-
-
-</body></html>
+</body>
+</html>

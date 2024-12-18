@@ -1,186 +1,184 @@
-<html><head><base href="." />
-<meta charset="UTF-8" />
-<link rel="icon" type="image/png" href="https://i.ibb.co/gzmYSPg/vidplay.png">
-<title>Local Video Player Extension</title>
-<style>
-body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background: #141414;
-  color: #ffffff;
-}
-
-#video-container {
-  width: 100%;
-  max-width: 1800px;
-  margin: 20px auto;
-  transition: margin 0.3s ease;
-}
-
-#controls {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 10px;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-#video {
-  width: 100%;
-  background: #000;
-}
-
-button {
-  padding: 8px 15px;
-  background: #E50914;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #F40612;
-}
-
-label {
-  color: #fff;
-  cursor: pointer;
-}
-
-#file-input {
-  display: none;
-}
-
-#time-display {
-  margin-left: auto;
-  color: #fff;
-}
-
-/* Hidden history display */
-#history-display {
-  display: none;
-}
-</style>
-</head>
-<body>
-<div id="controls">
-  <label for="file-input">Choose Video</label>
-  <input type="file" id="file-input" accept="video/*">
-  <button id="play-pause">Play</button>
-  <button id="rewind">Rewind 10s</button>
-  <button id="forward">Forward 10s</button>
-  <span id="time-display">0:00 / 0:00</span>
-</div>
-
-<div id="video-container">
-  <video id="video" controls></video>
-</div>
-
-<div id="history-display"></div>
-
-<script>
-const video = document.getElementById('video');
-const fileInput = document.getElementById('file-input');
-const playPauseButton = document.getElementById('play-pause');
-const rewindButton = document.getElementById('rewind');
-const forwardButton = document.getElementById('forward');
-const timeDisplay = document.getElementById('time-display');
-
-// Initialize video history in localStorage if it doesn't exist
-if (!localStorage.getItem('videoHistory')) {
-    localStorage.setItem('videoHistory', JSON.stringify([]));
-}
-
-function updateVideoHistory(filename, currentTime) {
-    let history = JSON.parse(localStorage.getItem('videoHistory'));
-    
-    // Remove the entry if it already exists
-    history = history.filter(item => item.filename !== filename);
-    
-    // Add new entry at the beginning
-    history.unshift({
-        filename: filename,
-        timestamp: currentTime,
-        date: new Date().toISOString()
-    });
-    
-    // Keep only last 5 entries
-    history = history.slice(0, 5);
-    
-    localStorage.setItem('videoHistory', JSON.stringify(history));
-}
-
-fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        const fileURL = URL.createObjectURL(file);
-        video.src = fileURL;
-        
-        // Check if this video exists in history
-        const history = JSON.parse(localStorage.getItem('videoHistory'));
-        const previousEntry = history.find(item => item.filename === file.name);
-        
-        if (previousEntry) {
-            video.currentTime = previousEntry.timestamp;
-            // alert(`Resuming from ${formatTime(previousEntry.timestamp)}`);
-        }
-        
-        video.play();
-        playPauseButton.textContent = 'Pause';
+<html><head><base href="." /><meta charset="UTF-8"><title>Video Player with Plyr and Audio Track Selection</title><link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css"><style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #1a1a1a;
+        color: #fff;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
     }
-});
 
-// Save timestamp every 5 seconds during playback
-video.addEventListener('timeupdate', () => {
-    const currentTime = formatTime(video.currentTime);
-    const duration = formatTime(video.duration);
-    timeDisplay.textContent = `${currentTime} / ${duration}`;
-    
-    if (Math.floor(video.currentTime) % 5 === 0) {
-        const currentFile = fileInput.files[0];
-        if (currentFile) {
-            updateVideoHistory(currentFile.name, video.currentTime);
-        }
+    .player-container {
+        width: 1811px;
+        height: 834px;
+        background: #2a2a2a;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        position: relative;
     }
-});
 
-playPauseButton.addEventListener('click', () => {
-    if (video.paused) {
-        video.play();
-        playPauseButton.textContent = 'Pause';
-        scrollToVideo();
-    } else {
-        video.pause();
-        playPauseButton.textContent = 'Play';
+    .file-input-container {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
     }
-});
 
-rewindButton.addEventListener('click', () => {
-    video.currentTime = Math.max(0, video.currentTime - 10);
-});
+    #file-input {
+        display: none;
+    }
 
-forwardButton.addEventListener('click', () => {
-    video.currentTime = Math.min(video.duration, video.currentTime + 10);
-});
+    .custom-file-input {
+        background: #4CAF50;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+        display: inline-block;
+    }
 
-function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-}
+    .custom-file-input:hover {
+        background: #45a049;
+    }
 
-function scrollToVideo() {
-    const videoContainer = document.getElementById('video-container');
-    videoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-</script>
+    .video-wrapper {
+        width: 100%;
+        height: calc(100% - 60px); /* Accounting for the file input height */
+        margin-top: 60px;
+    }
+
+    .plyr {
+        width: 100%;
+        height: 100%;
+        border-radius: 5px;
+    }
+
+    video {
+        width: 100%;
+        height: 100%;
+    }
+
+    .audio-tracks {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+    }
+
+    .audio-tracks select {
+        background: #333;
+        color: white;
+        padding: 8px;
+        border: none;
+        border-radius: 4px;
+        width: 200px;
+        cursor: pointer;
+    }
+
+    .audio-tracks select:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #4CAF50;
+    }
+
+    .audio-info {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #aaa;
+    }
+
+    #file-info {
+        position: absolute;
+        bottom: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        color: #aaa;
+    }
+
+    .unsupported {
+        position: absolute;
+        bottom: 90px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #ff4444;
+        display: none;
+    }
+</style></head><body>
+    <div class="player-container">
+        <div class="file-input-container">
+            <label for="file-input" class="custom-file-input">
+                Choose Video File
+            </label>
+            <input type="file" id="file-input" accept=".mp4,.mkv,.avi,.webm">
+        </div>
+        
+        <div class="video-wrapper">
+            <video id="video-player" playsinline controls>
+                Your browser does not support the video element.
+            </video>
+        </div>
+        
+        <div class="audio-tracks">
+            <select id="audio-track-select">
+                <option value="">No audio tracks available</option>
+            </select>
+            <div class="audio-info" id="audio-info"></div>
+        </div>
+        
+        <div id="file-info"></div>
+        <div class="unsupported" id="unsupported-message">
+            This video format might not be supported by your browser. 
+            For best results, use H.264 encoded MP4 files.
+        </div>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script>
+        const videoElement = document.getElementById('video-player');
+        const fileInput = document.getElementById('file-input');
+        const playerContainer = document.querySelector('.player-container');
+
+        // Initialize Plyr
+        const player = new Plyr('#video-player', {
+            controls: [
+                'play-large',
+                'play',
+                'progress',
+                'current-time',
+                'duration',
+                'mute',
+                'volume',
+                'settings',
+                'pip',
+                'fullscreen'
+            ],
+            settings: ['captions', 'quality', 'speed'],
+        });
+
+        // File input change handler
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                videoElement.src = fileURL;
+
+                videoElement.onloadedmetadata = function() {
+                    player.play(); // Auto-play when loaded
+                };
+            }
+        });
+
+        // Scroll to center the video when playback starts
+        videoElement.addEventListener('play', function() {
+            playerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    </script>
+
 </body></html>
